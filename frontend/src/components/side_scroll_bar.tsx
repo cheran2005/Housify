@@ -56,10 +56,13 @@ export default function CenterSnapCarousel({ images }: Props) {
       setActive(bestIndex);//set the active state to the bestIndex number value
     };
 
-    let raf = 0;
+    let raf = 0;//just a variable to store the ID number from requestAnimationFrame
     const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(updateActive);
+      cancelAnimationFrame(raf);//during scroll cancel last animation frame
+      raf = requestAnimationFrame(updateActive);//update raf with the new animation frame
+
+      //The reason for this is because if a user scrolls in the scroll bar, too many call backs are scheduled from different scroll events when you continue to scroll. But these scroll events callbacks pile up on one animation frame.
+      //To only make the latest scroll event and callback run, we can ensure that all the old scroll events are canceled so we can only run the scroll event that matters in the animatio frame, less laggy.
     };
 
     // Disable mouse wheel scrolling (keep touch scrolling)
