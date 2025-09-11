@@ -5,48 +5,55 @@ type Props = { images: string[] };
 
 
 export default function CenterSnapCarousel({ images }: Props) {
-  //initalizing all the variables used in the side scroll bar
-  const scrollerRef = useRef<HTMLDivElement | null>(null);//html element reference 
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);//images reference
-  const [active, setActive] = useState(0);//active is a variable, setActive is the function that helps update and trigger a re-render, 
-                                          // and usestate(0) initializes active to 0
+  //initalizing reference and state variables
+  const scrollerRef = useRef<HTMLDivElement | null>(null);//to reference the DOM node the entire scroll bar is inside of
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);//Array for the images that are in the carousel, each referencing to a DOM node 
+  const [active, setActive] = useState(0);//state to check which image is closest to the center of the scroll bar
 
   // setting variables that track for dragging
-  const isDownRef = useRef(false);
-  const startXRef = useRef(0);
-  const startScrollLeftRef = useRef(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const isDownRef = useRef(false);//check for if the scrollbar is clicked by the pointer
+  const startXRef = useRef(0);//where the mouse pointer is located when you first click on the scrollbar 
+  const startScrollLeftRef = useRef(0);//the very left of the scrollbar x coordinate
+  const [isDragging, setIsDragging] = useState(false);//state to check if the mouse is currently dragging or not
 
+  //On every render react creates a brand new function object, useCallback stops that by making the function object once
+  //and calling being able to reuse the same function object.
   
-  const setItemRef = useCallback(
-    (idx: number) => (el: HTMLDivElement | null): void => {
-      itemRefs.current[idx] = el;
+  const setItemRef = useCallback(//in this function we are setting each itemRefs array item to a DOM node.
+    (idx: number) => (el: HTMLDivElement | null): void => {//React will only call a DOM node reference callback if it is a single argument, cannot have multiple reference call backs
+
+      itemRefs.current[idx] = el;//.current so we can access the actual array items and for a specific index, put a specific DOM node where the image will be stored
     },
-    []
+    []//The usecallback funciton object gets created only when the div container it is inisde mounts
   );
 
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
+  useEffect(() => {//the effect of getting the most center image from the scroll bar
+    const scroller = scrollerRef.current;//get the DOM node of where the side scroll bar is
 
-    const updateActive = () => {
-      const { left, width } = scroller.getBoundingClientRect();
-      const centerX = left + width / 2;
+    if (!scroller) return;//If no reference to the side scroll bar DOM node, cancel effect
 
-      let bestIndex = 0;
-      let bestDist = Infinity;
+    const updateActive = () => {//function to update what image is in the center
+      const { left, width } = scroller.getBoundingClientRect();//getBoundingClientRect has a left and width object for whatever div container we are dealing with, 
+                                                              // so getting the point on the most left and how wide the container is.
 
-      itemRefs.current.forEach((el, i) => {
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        const d = Math.abs(r.left + r.width / 2 - centerX);
-        if (d < bestDist) {
+
+      const centerX = left + width / 2;//Get the center with the two values we got eariler
+
+      let bestIndex = 0;//index variable to track which index in items ref is at the center
+      let bestDist = Infinity;//Best distance from center to choose the image closest to the center, initalized with infinity so that the variable can be compared with any real numbers initially
+
+      itemRefs.current.forEach((el, i) => {//For each item in the itemsref array of DOM nodes
+        if (!el) return;//First check if that DOM node is null or not before moving further for each of the DOM nodes in the array
+        const r = el.getBoundingClientRect();//set r as the variable that has all the measrument objects related to node el
+        const d = Math.abs(r.left + r.width / 2 - centerX);//find the distance from the center by comparing how far the center of the DOM node element is from the center of the scroll bar
+        if (d < bestDist) {//keep replacing bestDist value with the closest value
+          //tracking the DOM container closest to the center and the index of that DOM container
           bestDist = d;
           bestIndex = i;
         }
       });
 
-      setActive(bestIndex);
+      setActive(bestIndex);//set the active state to the bestIndex number value
     };
 
     let raf = 0;
