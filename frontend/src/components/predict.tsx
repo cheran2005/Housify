@@ -22,8 +22,6 @@ export default function Predict() {
         bathrooms:bathroom,
         city:city,
     };
-
-    const models = ["Linear Regression","Random Forest Regression"];
     
 
      useEffect(() => {
@@ -35,11 +33,12 @@ export default function Predict() {
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); 
         const button = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement;
-        const which = button.name;
+        const which = SelectedModel;
 
         try {
             
-            if (which === "predictLR"){
+            if (which === "Linear Regression"){
+                console.log("LINEAR REGRESSION");
                 const res = await fetch(`${API_URL}/submit_LR`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -51,7 +50,8 @@ export default function Predict() {
                 setPrediction(data.prediction);
             }
 
-            else if (which === "predictRF"){
+            else if (which === "Random Forest Regression"){
+                
                 const res = await fetch(`${API_URL}/submit_RF`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -115,8 +115,8 @@ export default function Predict() {
                         <option value="" disabled>
                         -- Select one --
                         </option>
-                        <option value="linear">Linear Regression</option>
-                        <option value="randomforest">Random Forest Regression</option>
+                        <option value="Linear Regression">Linear Regression</option>
+                        <option value="Random Forest Regression">Random Forest Regression</option>
                     </select>
                 </div>
                 
