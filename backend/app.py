@@ -1,5 +1,6 @@
 #venv\Scripts\activate
 #python app.py
+#deactivate
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS

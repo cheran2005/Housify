@@ -11,7 +11,7 @@ export default function Navbar() {
       <nav className="flex items-center justify-between w-full px-6 py-4  bg-transparent font-raleway ">
 
             
-        <div className="justify-start border border-transparent rounded-full py-2 px-2 shadow-lg bg-[rgb(250,201,126)]">
+        <div className="justify-start border border-transparent rounded-full py-2 px-2 shadow-lg bg-[rgba(254, 209, 141, 1)]">
           <a  className="flex gap-5" title="Start Of Web Page"><img src={myLogo} alt="My Logo" className="w-10 h-10 " /><p className="text-4xl font-[450]">Housify</p></a>
         </div>
 

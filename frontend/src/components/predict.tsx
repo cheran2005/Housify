@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect,useRef } from "react";
 
 export default function Predict() {
     const API_URL = import.meta.env.VITE_API_URL as string;
@@ -9,6 +9,10 @@ export default function Predict() {
     const [bathroom, setbathroom] = useState<number | null>(null);
     const [city, setcity] = useState("");
     const [prediction, setPrediction] = useState<number | null>(null);
+
+    const [SelectedModel, setSelectedModel] = useState("");
+
+    const Resultref = useRef<HTMLDivElement | null>(null);
 
     const payload = {
         bedrooms: bedroom,
@@ -21,6 +25,12 @@ export default function Predict() {
 
     const models = ["Linear Regression","Random Forest Regression"];
     
+
+     useEffect(() => {
+        if (prediction != null && Resultref.current){
+            Resultref.current.scrollIntoView({behavior: "smooth"});
+        }
+    }, [prediction]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); 
@@ -59,7 +69,7 @@ export default function Predict() {
 
   return (
     
-        <div className ="w-full flex flex-col items-center justify-center ">
+        <div className =" pb-16 w-full flex flex-col items-center justify-center ">
             <form onSubmit={onSubmit} className="flex flex-col items-center justify-center gap-10">
 
                 <h1 className="text-5xl font-raleway font-[550]">Housing Details</h1>
@@ -97,16 +107,26 @@ export default function Predict() {
 
                 <div className="flex gap-3">
                     <h1 className="text-2xl font-raleway font-[550]">Choose Prediction Model:</h1>
-                    <input type="text" value={city ?? ""} onChange={(e) => setcity(e.target.value)} placeholder="Enter City Name" className="border border-[rgba(0, 0, 0, 1)] focus:outline-none px-2"/>
+                    <select
+                        value={SelectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="px-4 py-2 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    >
+                        <option value="" disabled>
+                        -- Select one --
+                        </option>
+                        <option value="linear">Linear Regression</option>
+                        <option value="randomforest">Random Forest Regression</option>
+                    </select>
                 </div>
                 
-                <button type="submit" name="predictLR" className="font-raleway border border-[rgb(255,166,83)] shadow-2xl shadow-black/60 text-4xl  
-                rounded-full px-2 py-1 hover:bg-[rgb(255,195,139)] duration-700 transform-gpu 
-                transition-transform ease-out hover:-translate-y-2 ">Predict!</button>
+                <button type="submit" name="predictLR" className="font-raleway  shadow-2xl shadow-black/60 text-4xl  
+                rounded-full px-2 py-1 bg-[rgba(255, 217, 182, 1)] hover:bg-[rgb(255,195,139)] duration-700 transform-gpu 
+                transition-transform ease-out hover:-translate-y-2 w-auto mx-auto inline-flex">Predict!</button>
 
             </form>
 
-            {prediction !== null && <p>Predicted Price: ${prediction.toFixed(2)}</p>}
+            {prediction !== null && <p ref={Resultref} className="flex font-raleway font-[550] text-2xl border border-[rgba(0, 0, 0, 1)] shadow-2xl shadow-black/60 items-center justify-center my-10 px-3 py-3">Predicted Price: ${prediction.toFixed(2)}</p>}
         </div>
   );
 }
