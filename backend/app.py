@@ -1,31 +1,58 @@
-from flask import Flask, request,jsonify ,render_template
+#venv\Scripts\activate
+#python app.py
 
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
 
-
 app = Flask(__name__)
+CORS(app)  # allow React frontend to talk to backend
 
-model_linear_regression = joblib.load("models/linear_regression_model.pkl")
+# load trained model
+model_lr = joblib.load("models/linear_regression_model.pkl")
 
-@app.route('/')
+model_rf = joblib.load("models/random_forest_regressor_model.pkl")
+
+@app.route("/")
 def home():
-    return render_template("index.html")
+    return jsonify({"message": "Backend is running!"})
 
-
-@app.route('/submit_LR', methods=['POST'])
-
+@app.route("/submit_LR", methods=["POST"])
 def predict_LR():
     data = request.get_json()
+    print("📦 Incoming JSON:", data)
+    # replace empty values with NaN
+    for key, value in data.items():
+        if value in ("", None):
+            data[key] = np.nan
 
-    for a,b in data.items():
-        if b in ("",None):
-            data[a] = np.nan
-    df = pd.DataFrame([data])   
-    prediction_price = model_linear_regression.predict(df)[0]
+    df = pd.DataFrame([data])
+    print("columns:", df.columns.tolist())
 
-    return jsonify({"prediction": float(prediction_price)})
+    prediction = model_lr.predict(df)[0]
 
-if __name__ == '__main__':
+
+    return jsonify({"prediction": float(prediction)})
+
+@app.route("/submit_RF", methods=["POST"])
+def predict_RF():
+    data = request.get_json()
+    print("📦 Incoming JSON:", data)
+    # replace empty values with NaN
+    for key, value in data.items():
+        if value in ("", None):
+            data[key] = np.nan
+
+    df = pd.DataFrame([data])
+    print("columns:", df.columns.tolist())
+
+    prediction = model_rf.predict(df)[0]
+
+
+    return jsonify({"prediction": float(prediction)})
+
+
+if __name__ == "__main__":
     app.run(debug=True)
