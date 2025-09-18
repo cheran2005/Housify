@@ -12,7 +12,7 @@ function App() {
     
     <Router>
       <Navbar />   
-      <div className="pt-15  h-screen font-raleway ">
+      <div className="pt-15  h-screen ">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/predict" element={<Predict />} />
