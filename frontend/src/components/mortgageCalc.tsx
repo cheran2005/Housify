@@ -3,28 +3,32 @@ import { useState,useRef ,useEffect} from "react";
 
 //Mortgage calculator component
 export default function MortgageCalc() {
+    //Input states
     const [principal,setprincipal] = useState<number | null>(null);
     const [Annual_Intrest_Rate,setAnnual_Intrest_Rate] = useState<number | null>(null);
     const [Loan_term,setLoan_term] = useState<number | null>(null);
     const [Payment_freq,setPayment_freq] = useState<number | null>(null);
 
    
-
+    //form output states
     const [Payment,setPayment] = useState<number | null>(null);
     const [TotalPayment,setTotalPayment] = useState<number | null>(null);
     const [TotalInterest,setTotalInterestPayment] = useState<number | null>(null);
 
+    //Dom references for each input and output box
     const principalRef = useRef<HTMLDivElement | null>(null);
     const Annual_Intrest_RateRef = useRef<HTMLDivElement | null>(null);
     const Loan_termRef = useRef<HTMLDivElement | null>(null);
     const Payment_freqRef = useRef<HTMLDivElement | null>(null);
     const PaymentRef = useRef<HTMLDivElement | null>(null);
 
+    //Keep track of error messages
     const [Errors,setErrors] = useState<{
         principal ?: string,Annual_Intrest_Rate ?: string,
         Loan_term ?:string,Payment_freq ?: string
     }>({});
 
+    //Connecting string with Dom reference for smooth scroll animation when error occurs
     const fieldRefs: Record<string, React.RefObject<HTMLElement | null>> = {
         principal: principalRef,
         Annual_Intrest_Rate: Annual_Intrest_RateRef,
@@ -32,6 +36,7 @@ export default function MortgageCalc() {
         Payment_freq: Payment_freqRef
     };
 
+    //validating input
     const validate = () => {
 
         const errorcheck:typeof Errors = {};
