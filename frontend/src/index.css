@@ -6,6 +6,7 @@
     height: 100%;
     min-height: 100svh; 
   }
+  
   body {
     @apply bg-gradient-to-b from-[rgb(255,145,0)] to-[rgb(255,207,144)];
     margin: 0;

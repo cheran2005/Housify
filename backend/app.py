@@ -23,7 +23,8 @@ def home():
 @app.route("/submit_LR", methods=["POST"])
 def predict_LR():
     data = request.get_json()
-    print("📦 Incoming JSON:", data)
+    print("Incoming JSON:", data)
+    
     # replace empty values with NaN
     for key, value in data.items():
         if value in ("", None):
@@ -40,7 +41,7 @@ def predict_LR():
 @app.route("/submit_RF", methods=["POST"])
 def predict_RF():
     data = request.get_json()
-    print("📦 Incoming JSON:", data)
+    print("Incoming JSON:", data)
     # replace empty values with NaN
     for key, value in data.items():
         if value in ("", None):

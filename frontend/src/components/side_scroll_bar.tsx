@@ -1,68 +1,76 @@
+//import react hooks
 import { useEffect, useRef, useState, useCallback } from "react";
 
-//Initalize function props to be a array of images in the side scroll bar
+//Initalize function props for images
 type Props = { images: string[] };
 
 
+/**
+ * CenterSnapCarousel
+ * - Horizontally scrollable, center-snap image carousel with drag-to-scroll
+ * - Throttles scroll handling via requestAnimationFrame
+ * - Uses pointer capture so dragging continues outside the scroller bounds
+ */
 export default function CenterSnapCarousel({ images }: Props) {
-  //initalizing reference and state variables
-  const scrollerRef = useRef<HTMLDivElement | null>(null);//to reference the DOM node the entire scroll bar is inside of
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);//Array for the images that are in the carousel, each referencing to a DOM node 
-  const [active, setActive] = useState(0);//state to check which image is closest to the center of the scroll bar
+  //initalizing references and states
+  const scrollerRef = useRef<HTMLDivElement | null>(null);//Dom node for entire scrollbar reference
 
-  // setting variables that track for dragging
-  const isDownRef = useRef(false);//check for if the scrollbar is clicked by the pointer
-  const startXRef = useRef(0);//where the mouse pointer is located when you first click on the scrollbar 
-  const startScrollLeftRef = useRef(0);//How much the scrollbar is scrolled when you try to scroll at the start of the scroll
-  const [isDragging, setIsDragging] = useState(false);//state to check if the mouse is currently dragging or not
-
-  //On every render react creates a brand new function object, useCallback stops that by making the function object once
-  //and calling being able to reuse the same function object.
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);//For each image
   
-  const setItemRef = useCallback(//in this function we are setting each itemRefs array item to a DOM node.
-    (idx: number) => (el: HTMLDivElement | null): void => {//React will only call a DOM node reference callback if it is a single argument, cannot have multiple reference call backs
+  const [active, setActive] = useState(0);//Index for most centered image
 
-      itemRefs.current[idx] = el;//.current so we can access the actual array items and for a specific index, put a specific DOM node where the image will be stored
+  const isDownRef = useRef(false);//Check if pressed on
+
+  const startXRef = useRef(0);//Track where mouse x coordinate is on the scrollbar
+
+  const startScrollLeftRef = useRef(0);//Track how far the scrollbar is already scrolled
+
+  const [isDragging, setIsDragging] = useState(false);//Check for dragging from user mouse
+  
+  //Function to initalize reference that keeps track of each images div container in a useCallback function so function does not have
+  //to create a new function object every render
+  const setItemRef = useCallback(
+    (idx: number) => (el: HTMLDivElement | null): void => {
+      itemRefs.current[idx] = el;
     },
-    []//The usecallback funciton object gets created only when the div container it is inisde mounts
+    []
   );
 
-  useEffect(() => {//the effect of getting the most center image from the scroll bar
-    const scroller = scrollerRef.current;//get the DOM node of where the side scroll bar is
+  //components effect once every mount
+  useEffect(() => {
 
-    if (!scroller) return;//If no reference to the side scroll bar DOM node, cancel effect
+    //Check if scrollbar DOM nod exists
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
 
-    const updateActive = () => {//function to update what image is in the center
-      const { left, width } = scroller.getBoundingClientRect();//getBoundingClientRect has a left and width object for whatever div container we are dealing with, 
-                                                              // so getting the point on the most left and how wide the container is.
+    //Check most centered image and set index to active state
+    const updateActive = () => {
+      const { left, width } = scroller.getBoundingClientRect();
+      const centerX = left + width / 2;
 
+      let bestIndex = 0;
+      let bestDist = Infinity;
 
-      const centerX = left + width / 2;//Get the center with the two values we got eariler
+      itemRefs.current.forEach((el, i) => {
+        if (!el) return;
 
-      let bestIndex = 0;//index variable to track which index in items ref is at the center
-      let bestDist = Infinity;//Best distance from center to choose the image closest to the center, initalized with infinity so that the variable can be compared with any real numbers initially
+        const r = el.getBoundingClientRect();
+        const d = Math.abs(r.left + r.width / 2 - centerX);
 
-      itemRefs.current.forEach((el, i) => {//For each item in the itemsref array of DOM nodes
-        if (!el) return;//First check if that DOM node is null or not before moving further for each of the DOM nodes in the array
-        const r = el.getBoundingClientRect();//set r as the variable that has all the measrument objects related to node el
-        const d = Math.abs(r.left + r.width / 2 - centerX);//find the distance from the center by comparing how far the center of the DOM node element is from the center of the scroll bar
-        if (d < bestDist) {//keep replacing bestDist value with the closest value
-          //tracking the DOM container closest to the center and the index of that DOM container
+        if (d < bestDist) {
           bestDist = d;
           bestIndex = i;
         }
       });
 
-      setActive(bestIndex);//set the active state to the bestIndex number value
+      setActive(bestIndex);
     };
 
-    let raf = 0;//just a variable to store the ID number from requestAnimationFrame
+    //remove unnecessary call backs to updateActive piling up from scroll events and only call latest updateActive to animation frame
+    let raf = 0;
     const onScroll = () => {
-      cancelAnimationFrame(raf);//during scroll cancel last animation frame
-      raf = requestAnimationFrame(updateActive);//update raf with the new animation frame
-
-      //The reason for this is because if a user scrolls in the scroll bar, too many call backs are scheduled from different scroll events when you continue to scroll. But these scroll events callbacks pile up on one animation frame.
-      //To only make the latest scroll event and callback run, we can ensure that all the old scroll events are canceled so we can only run the scroll event that matters in the animatio frame, less laggy.
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateActive);
     };
 
     // Disable mouse wheel scrolling (keep touch scrolling)
@@ -70,18 +78,18 @@ export default function CenterSnapCarousel({ images }: Props) {
       e.preventDefault();
     };
 
+    //Add event listeners and connect them to onScroll() and onWheel()
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("wheel", onWheel, { passive: false });
 
+    //Initalize first centered image when scrollbar first mounted
+    updateActive();
 
-    scroller.addEventListener("scroll", onScroll, { passive: true });//In the div container for the entire scrollwheel, activate onscroll function whenever the scroll element is being used,passive true indicates no preventDefault() is inside the function
+    //Update centered image is any screen resizing occurs
+    const ro = new ResizeObserver(updateActive);
+    ro.observe(scroller);
 
-    scroller.addEventListener("wheel", onWheel, { passive: false });//In the div container activate the onWheel function whenever the mouse wheel is being used around the element 
-
-    updateActive();//run update active when the program first start so the program is initalized with a element closest to the center
-
-    const ro = new ResizeObserver(updateActive);//for the variable ro, have a ResizeObserver object that uses updateActive as its call back
-    ro.observe(scroller);//obserevr the scroller container for any Resize changes
-
-    //after effect is finished to avoid memory leaks,duplicates updates, and unnecessary work
+    //Remove Eventlisteners and ResizeObserver when scrollbar gets unmounted
     return () => {
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("wheel", onWheel);
@@ -91,65 +99,66 @@ export default function CenterSnapCarousel({ images }: Props) {
   }, []);
 
   
-  // Pointer to track when mouse is clicked on scrollbar
-  const onPointerDown= (e: React.PointerEvent<HTMLDivElement>)=> {//get type event object for pointer event
+  // Pointer mouse positioning variables every time mouse is clicked on scrollbar
+  const onPointerDown= (e: React.PointerEvent<HTMLDivElement>)=> {
     const scroller = scrollerRef.current;
-    if (!scroller) return;//check if scrollbar is mounted
+    if (!scroller) return;
 
-    isDownRef.current = true;//set true since scrollbar is being pressed
-    startXRef.current = e.clientX;//Get mouse pointer position from the mouse pointer
-    startScrollLeftRef.current = scroller.scrollLeft;//get how far the scrollbar is scrolled
-    setIsDragging(true);//set the dragging state to true
-    scroller.setPointerCapture?.(e.pointerId);//setPointerCapture is a specific browser DOM API that tracks a pointer after it scrolls outisde the box,
-                                              //to maintain the scroll effect, the pointerId from the pointer event is still being tracked and the ? is to check if the DOM API exists for specific browsers and that it can ignore this request.
+    isDownRef.current = true;
+    startXRef.current = e.clientX;
+    startScrollLeftRef.current = scroller.scrollLeft;
+    setIsDragging(true);
+    scroller.setPointerCapture?.(e.pointerId);//To continue updating variables after mouse leaves scrollbar but is still holding drag
+                                             
   };
 
-  //update variables when mouse pointer moves
+  //update variables when mouse pointer is dragging while clicked
   const onPointerMove= (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDownRef.current || !scrollerRef.current) return;
     e.preventDefault(); // prevent text/image selection while dragging
-    const dx = e.clientX - startXRef.current; //get the distance from the x of the mouse pointer to where the mouse was first clicked on the drag
-    scrollerRef.current.scrollLeft = startScrollLeftRef.current - dx;//change how much the scroll bar is scrolled by how much the user used the mouse to drag
+    const dx = e.clientX - startXRef.current; 
+    scrollerRef.current.scrollLeft = startScrollLeftRef.current - dx;
   };
+
 
   //update variables when drag ends
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDownRef.current) return;//check if drag is not happening 
-    isDownRef.current = false;//set pointer being pressed to false
-    setIsDragging(false);//set dragging state to false
-    scrollerRef.current?.releasePointerCapture?.(e.pointerId);//release releasePointerCapture api 
+    if (!isDownRef.current) return;
+    isDownRef.current = false;
+    setIsDragging(false);
+    scrollerRef.current?.releasePointerCapture?.(e.pointerId);
   };
 
   return (
+    
     <div className="relative">
+      {/* Styling scrollbar and connecting functions to different mouse events*/}
       <div
-        ref={scrollerRef} //setting this div DOM node to scrollerRef and letting react reserve the ref to clean up or set to null when the element unmounts
-        role="list"//tells screen readers that this div acting like a list
+        ref={scrollerRef} 
+        role="list"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
+        onDragStart={(e) => e.preventDefault()}
 
-        //When reacts synthetic events are called in the system, we call the functions we made earlier
-
-        onPointerDown={onPointerDown}//when mouse pointer event is clicked activate onPointerDown()
-        onPointerMove={onPointerMove}//when mouse pointer event is dragged activate onPointerMove()
-        onPointerUp={endDrag}//when drag is finished activate endDrag()
-        onPointerCancel={endDrag}//when pointer is canceled activate endDrag()
-        onPointerLeave={endDrag}//when pointer leaves activate endDrag()
-        onDragStart={(e) => e.preventDefault()}//When dragging and dropping is activated, cancel it to avoid ghost images being moved around in the scrollbar(want a clean scrollbar)
-
-        //styling scrollbar
         className={`flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory px-[12vw] md:px-[18vw] 
-          ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"}`}//ensuring that when dragging is true, cursor is grabbed but select none of the elements, if isDragging false then make the pointer show it is draggable
+          ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"}`}
 
-        style={{ scrollbarWidth: "none" }} // hides Firefox scrollbar
+        style={{ scrollbarWidth: "none" }} 
       >
-        {images.map((src, i) => (//for every image from the image array, tracking the index in i
+        {/* Displaying each image from images array and set each image div container to itemRefs through setItemRef()*/}
+        {images.map((src, i) => (
           <div
-            key={i}//react requires keys when you render list, so when you rerender, the entire list rerenders
-            ref={setItemRef(i)}//set item ref array and reference this specific index for each image, so when the elements unmount, the DOM nodes can all be set to NULL in the array
+            key={i}
+            ref={setItemRef(i)}
             role="listitem"
+            //style and check if image is at the center, if center than make image pop out of scrollbar effect
             className={`flex-none snap-center transform-gpu transition-transform duration-300 ${
-              active === i ? "scale-105 opacity-100" : "scale-90 opacity-60"
-            }`}//whatever index is at the center from state active, set to center and make the image pop forward
+              active === i ? "scale-105 opacity-100" : "scale-90 opacity-60"}`}
           >
+             {/* styling image*/}
             <img
               src={src}
               alt=""
@@ -159,7 +168,7 @@ export default function CenterSnapCarousel({ images }: Props) {
             /> 
             
             
-          </div> //styling image
+          </div> 
         ))}
       </div>
     </div>

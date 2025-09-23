@@ -1,8 +1,12 @@
+//import react hooks
 import { useState,useEffect,useRef} from "react";
 
-
+//predict page component
 export default function Predict() {
+    //Import api url from vite environmental variables
     const API_URL = import.meta.env.VITE_API_URL as string;
+
+    //initializing states that keep track of form input
     const [bedroom, setbedroom] = useState<number | null>(null);
     const [latitude, setlatitude] = useState<number | null>(null);
     const [longitude, setlongitude] = useState<number | null>(null);
@@ -10,11 +14,10 @@ export default function Predict() {
     const [bathroom, setbathroom] = useState<number | null>(null);
     const [city, setcity] = useState("");
     const [prediction, setPrediction] = useState<number | null>(null);
-
     const [SelectedModel, setSelectedModel] = useState("");
 
+    //initalize reference for html div element for each form input
     const Resultref = useRef<HTMLDivElement | null>(null);
-
     const bedroomRef = useRef<HTMLDivElement | null>(null);
     const latitudeRef = useRef<HTMLDivElement | null>(null);
     const longitudeRef = useRef<HTMLDivElement | null>(null);
@@ -24,7 +27,7 @@ export default function Predict() {
     const modelRef = useRef<HTMLDivElement | null>(null);
     
 
-
+    //List of strings in a state to track which form has an error that can either be null or have a error message string
     const [Errors,setErrors] = useState<{
         bedroom ?: string,latitude ?: string,
         longitude ?:string,sqft ?: string,
@@ -32,6 +35,7 @@ export default function Predict() {
         SelectedModel ?: string,
     }>({});
 
+    //A list of strings connected to specific form input div container
     const fieldRefs: Record<string, React.RefObject<HTMLElement | null>> = {
         bedroom: bedroomRef,
         latitude: latitudeRef,
@@ -41,6 +45,8 @@ export default function Predict() {
         city: cityRef,
         SelectedModel: modelRef,
     };
+
+    //List of states to be sent to backend to receive prediction
     const payload = {
         bedrooms: bedroom,
         latitude:latitude,
@@ -50,17 +56,19 @@ export default function Predict() {
         city:city,
     };
     
-
+    //Effect for every change in prediction price value, smoothly scroll to price div container
     useEffect(() => {
         if (prediction != null && Resultref.current){
             Resultref.current.scrollIntoView({behavior: "smooth"});
         }
     }, [prediction]);
 
-
-    function validate(){
-
+    //Check for any errors
+    const validate = () => {
+        //An array to track errors
         const errorcheck : typeof Errors = {};
+
+        //Check each state for any invalid inputs
         if (bedroom == null){errorcheck.bedroom = "Please enter at least 1 bedroom";}
         if (latitude != null && (latitude <-90 || latitude > 90)){errorcheck.latitude = "Latitude must be between -90 to 90";}
         if (longitude != null && (longitude <-180 || longitude > 180)){errorcheck.longitude ="longitude must be between -180 to 180";}
@@ -69,27 +77,34 @@ export default function Predict() {
         if (city === ""){errorcheck.city = "Please select a city";}
         if (SelectedModel === ""){errorcheck.SelectedModel = "Please select a Model";}
 
+        //update error state
         setErrors(errorcheck);
         
-        return Object.keys(errorcheck).length === 0;
+        //return a boolean value if there are not any errors stored in errorcheck state
+        return errorcheck;
     }
 
+    //Aysnc submit function
     const onSubmit = async (e: React.FormEvent) => {
+
+        //Stop default reload when submit button clicked
         e.preventDefault(); 
-        if (!validate()){
-           const firstErrorKey = Object.keys(Errors)[0] as keyof typeof fieldRefs;
-
-            
+        const errorcheck = validate();
+        setErrors(errorcheck);
+        //Check if input is valid
+        if (Object.keys(errorcheck).length){
+            //Find the first input error and smoothly scroll to the specific input div container
+            const firstErrorKey = Object.keys(errorcheck)[0] as keyof typeof fieldRefs;
             const ref = fieldRefs[firstErrorKey];
-
-            
             ref?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
             ref?.current?.focus();
             return;
         }
 
+        //Track chosen model 
         const chosen_model= SelectedModel;
-         
+
+        //Check which model was chosen and send a backend POST request to specific backend url connected to specific model
         try {
             
             if (chosen_model === "Linear Regression"){
@@ -100,34 +115,38 @@ export default function Predict() {
                     body: JSON.stringify( payload ), 
                 });
                 
-
                 const data = await res.json();
                 setPrediction(data.prediction);
             }
 
             else if (chosen_model === "Random Forest Regression"){
-                
                 const res = await fetch(`${API_URL}/submit_RF`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify( payload ), 
                 });
                 
-
                 const data = await res.json();
                 setPrediction(data.prediction);
             }
-        } catch (err) {
-        console.error("Error:", err);
+        } 
+
+        //Catch any errors when making POST request  
+        catch (err) {
+            console.error("Error:", err);
         }
     };
 
-  return (
-    
+    return (
+        
         <div className =" pb-16 w-full flex flex-col items-center justify-center ">
             <form onSubmit={onSubmit} className="flex flex-col items-center justify-center gap-5">
-
+                {/* Form title */}
                 <h1 className="text-5xl font-raleway font-[550] pb-6">Housing Details</h1>
+
+
+
+                {/* Form inputs*/}
                 <div className="flex gap-3">
                     <h1 className="text-2xl font-raleway font-[550]">Number Of Bedrooms:</h1>
                     <div className="flex flex-col items-center ">
@@ -222,13 +241,14 @@ export default function Predict() {
                 </div>
 
                 
-                
+                {/* Submit button*/}
                 <button type="submit" name="predictLR" className="font-raleway  shadow-2xl shadow-black/60 text-4xl  
                 rounded-full px-2 py-1 bg-[rgba(255, 217, 182, 1)] hover:bg-[rgb(255,195,139)] duration-700 transform-gpu 
                 transition-transform ease-out hover:-translate-y-2 w-auto mx-auto inline-flex">Predict!</button>
 
             </form>
 
+            {/*Price prediction*/}
             {prediction !== null && <p ref={Resultref} className="flex font-raleway font-[550] text-2xl border border-[rgba(0, 0, 0, 1)] shadow-2xl shadow-black/60 items-center justify-center my-10 px-3 py-3">Predicted Price: ${prediction.toFixed(0)}</p>}
         </div>
   );
